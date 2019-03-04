@@ -1,10 +1,19 @@
 package main
 
 import (
+	"fmt"
+	"log"
+	"os"
+
 	"github.com/gin-gonic/gin"
 )
 
 func main() {
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+		log.Printf("Defaulting to port %s", port)
+	}
 	r := gin.Default()
 
 	r.GET("/", func(c *gin.Context) {
@@ -13,5 +22,5 @@ func main() {
 
 	r.GET("/calculate/from/:from/to/:to/amount/:amount", calculate)
 
-	r.Run(":80")
+	r.Run(fmt.Sprintf(":%s", port))
 }
