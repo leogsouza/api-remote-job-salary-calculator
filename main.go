@@ -11,5 +11,7 @@ func main() {
 		c.JSON(200, gin.H{"message": "I'm online"})
 	})
 
+	r.GET("/calculate/from/:from/to/:to/amount/:amount", calculate)
+
 	r.Run(":80")
 }
