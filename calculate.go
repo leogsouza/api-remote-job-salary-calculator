@@ -60,12 +60,6 @@ type ResponseCalculateJSON struct {
 	CalculatedSalary float64 `json:"calculated_salary"`
 }
 
-// Render is used just to implement render.Renderer
-func (rd *ResponseCalculateJSON) Render(w http.ResponseWriter, r *http.Request) error {
-
-	return nil
-}
-
 // ExchangeRateResponse represents the information coming from Exchange API
 type ExchangeRateResponse struct {
 	Rates map[string]float64 `json:"rates"`
@@ -133,7 +127,7 @@ func calculate(w http.ResponseWriter, r *http.Request) {
 		response = calculateHourly(amount, realRate)
 	}
 
-	render.Render(w, r, response)
+	render.JSON(w, r, response)
 }
 
 func calculateAnnual(amount float64, realRate float64) *ResponseCalculateJSON {
