@@ -33,13 +33,16 @@ type ErrResponse struct {
 	ErrorText  string `json:"error,omitempty"` // application-level error message, for debugging
 }
 
+// Render sets the status code to request when and error happen
 func (e *ErrResponse) Render(w http.ResponseWriter, r *http.Request) error {
 	render.Status(r, e.HTTPStatusCode)
 	return nil
 }
 
+// ErrNotFound corresponds to error response when resource not found
 var ErrNotFound = &ErrResponse{HTTPStatusCode: 404, StatusText: "Resource not found."}
 
+// ErrInvalidRequest returns an Invalid Request Error Response
 func ErrInvalidRequest(err error) render.Renderer {
 	return &ErrResponse{
 		Err:            err,
@@ -57,11 +60,13 @@ type ResponseCalculateJSON struct {
 	CalculatedSalary float64 `json:"calculated_salary"`
 }
 
+// Render is used just to implement render.Renderer
 func (rd *ResponseCalculateJSON) Render(w http.ResponseWriter, r *http.Request) error {
 
 	return nil
 }
 
+// ExchangeRateResponse represents the information coming from Exchange API
 type ExchangeRateResponse struct {
 	Rates map[string]float64 `json:"rates"`
 	Base  string             `json:"base"`
@@ -116,11 +121,40 @@ func calculate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response := &ResponseCalculateJSON{}
+
+	switch typeParam {
+	case "annual":
+		response = calculateAnnual(amount, realRate)
+	case "monthly":
+		response = calculateMonthly(amount, realRate)
+	case "daily":
+		response = calculateDaily(amount, realRate)
+	case "hourly":
+		response = calculateHourly(amount, realRate)
+	}
+
+	render.Render(w, r, response)
+}
+
+func calculateAnnual(amount float64, realRate float64) *ResponseCalculateJSON {
+	response := &ResponseCalculateJSON{}
 	response.AnnualSalary = amount
 	response.MonthlySalary = amount / 12
 	response.ConvertedSalary = realRate * response.MonthlySalary
 	response.CalculatedSalary = calculateBrazilianSalary(response.ConvertedSalary)
-	render.Render(w, r, response)
+	return response
+}
+
+func calculateMonthly(amount float64, realRate float64) *ResponseCalculateJSON {
+	return calculateAnnual(amount*12, realRate)
+}
+
+func calculateDaily(amount float64, realRate float64) *ResponseCalculateJSON {
+	return calculateMonthly(amount*20, realRate)
+}
+
+func calculateHourly(amount, realRate float64) *ResponseCalculateJSON {
+	return calculateDaily(amount*8, realRate)
 }
 
 func calculateBrazilianSalary(amount float64) float64 {
