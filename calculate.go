@@ -2,12 +2,12 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strconv"
 
-	"github.com/go-chi/chi"
 	"github.com/go-chi/render"
 )
 
@@ -69,9 +69,40 @@ type ExchangeRateResponse struct {
 }
 
 func calculate(w http.ResponseWriter, r *http.Request) {
-	fromCurrency := chi.URLParam(r, "from")
-	toCurrency := chi.URLParam(r, "to")
-	amount, err := strconv.ParseFloat(chi.URLParam(r, "amount"), 64)
+	keys := r.URL.Query()
+
+	typeParam := keys.Get("type")
+	if typeParam == "" {
+		errType := errors.New("Parameter 'type' is required")
+		render.Render(w, r, ErrInvalidRequest(errType))
+		return
+	}
+
+	if errList := validateListValues([]string{"annual", "monthly", "hourly", "daily"}, typeParam); errList != nil {
+		render.Render(w, r, ErrInvalidRequest(errList))
+		return
+	}
+
+	fromCurrency := keys.Get("from")
+	if fromCurrency == "" {
+		errFrom := errors.New("Parameter 'from' is required")
+		render.Render(w, r, ErrInvalidRequest(errFrom))
+		return
+	}
+
+	toCurrency := keys.Get("to")
+	if toCurrency == "" {
+		errTo := errors.New("Parameter 'to' is required")
+		render.Render(w, r, ErrInvalidRequest(errTo))
+		return
+	}
+	amountParam := keys.Get("amount")
+	if amountParam == "" {
+		errAmount := errors.New("Parameter 'amount' is required")
+		render.Render(w, r, ErrInvalidRequest(errAmount))
+		return
+	}
+	amount, err := strconv.ParseFloat(amountParam, 64)
 
 	if err != nil {
 		render.Render(w, r, ErrInvalidRequest(err))
@@ -117,4 +148,13 @@ func convertExchangeRate(from string, to string) (float64, error) {
 
 	return exchange.Rates["BRL"], nil
 
+}
+
+func validateListValues(list []string, value string) error {
+	for _, item := range list {
+		if item == value {
+			return nil
+		}
+	}
+	return fmt.Errorf("%s is not a valid value", value)
 }
