@@ -12,3 +12,5 @@
 *.out
 
 .vscode
+client-secret.json
+credentials.tar.gz
