@@ -67,7 +67,7 @@ type ExchangeRateResponse struct {
 	Date  string             `json:"date"`
 }
 
-func calculate(w http.ResponseWriter, r *http.Request) {
+func calculateHandler(w http.ResponseWriter, r *http.Request) {
 	keys := r.URL.Query()
 
 	typeParam := keys.Get("type")
@@ -113,21 +113,24 @@ func calculate(w http.ResponseWriter, r *http.Request) {
 		render.Render(w, r, ErrInvalidRequest(err))
 		return
 	}
+	response := calculate(typeParam, fromCurrency, toCurrency, amount, realRate)
+	render.JSON(w, r, response)
+}
 
-	response := &ResponseCalculateJSON{}
+func calculate(typeParam, fromCurrency, toCurrency string, amount, realRate float64) *ResponseCalculateJSON {
 
 	switch typeParam {
 	case "annual":
-		response = calculateAnnual(amount, realRate)
+		return calculateAnnual(amount, realRate)
 	case "monthly":
-		response = calculateMonthly(amount, realRate)
+		return calculateMonthly(amount, realRate)
 	case "daily":
-		response = calculateDaily(amount, realRate)
+		return calculateDaily(amount, realRate)
 	case "hourly":
-		response = calculateHourly(amount, realRate)
+		return calculateHourly(amount, realRate)
 	}
 
-	render.JSON(w, r, response)
+	return nil
 }
 
 func calculateAnnual(amount float64, realRate float64) *ResponseCalculateJSON {

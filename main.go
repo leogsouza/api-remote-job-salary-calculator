@@ -43,7 +43,7 @@ func main() {
 	})
 	r.Use(cors.Handler)
 
-	r.Get("/salary/calculator", calculate)
+	r.Get("/salary/calculator", calculateHandler)
 
 	log.Printf("accepting connections on port %s", port)
 	if err := http.ListenAndServe(fmt.Sprintf(":%s", port), r); err != nil {
