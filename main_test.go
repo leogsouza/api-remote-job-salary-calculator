@@ -16,6 +16,11 @@ func TestCalculateHandler(t *testing.T) {
 	}{
 		{"type=daily&from=USD&to=BRL&amount=500", http.StatusOK, &ResponseCalculateJSON{120000, 10000, 42466.225406, 31243.81416935}},
 		{"type=daly&from=USD&to=BRL&amount=500", http.StatusBadRequest, &ErrResponse{StatusText: "Invalid request."}},
+		{"from=USD&to=BRL&amount=500", http.StatusBadRequest, &ErrResponse{StatusText: "Invalid request."}},
+		{"type=daily&to=BRL&amount=500", http.StatusBadRequest, &ErrResponse{StatusText: "Invalid request."}},
+		{"type=daily&from=USD&amount=500", http.StatusBadRequest, &ErrResponse{StatusText: "Invalid request."}},
+		{"type=daily&from=USD&to=BRL", http.StatusBadRequest, &ErrResponse{StatusText: "Invalid request."}},
+		{"type=daly&from=USD&to=BRL&amount=abcd", http.StatusBadRequest, &ErrResponse{StatusText: "Invalid request."}},
 	}
 
 	for _, tt := range data {
