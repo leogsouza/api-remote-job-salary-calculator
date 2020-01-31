@@ -7,18 +7,32 @@ import (
 )
 
 func TestCalculateHandler(t *testing.T) {
-	req, err := http.NewRequest("GET", "localhost:8080/salary/calculator?type=daily&from=USD&to=BRL&amount=500", nil)
-	if err != nil {
-		t.Fatalf("could not created request: %v", err)
-	}
-	rec := httptest.NewRecorder()
 
-	calculateHandler(rec, req)
-
-	res := rec.Result()
-	if res.StatusCode != http.StatusOK {
-		t.Errorf("expected status OK; got %v", res.StatusCode)
+	url := "localhost:8080/salary/calculator?"
+	data := []struct {
+		urlParams  string
+		statusCode int
+		resp       interface{}
+	}{
+		{"type=daily&from=USD&to=BRL&amount=500", http.StatusOK, &ResponseCalculateJSON{120000, 10000, 42466.225406, 31243.81416935}},
+		{"type=daly&from=USD&to=BRL&amount=500", http.StatusBadRequest, &ErrResponse{StatusText: "Invalid request."}},
 	}
+
+	for _, tt := range data {
+		req, err := http.NewRequest("GET", url+tt.urlParams, nil)
+		if err != nil {
+			t.Fatalf("could not created request: %v", err)
+		}
+		rec := httptest.NewRecorder()
+
+		calculateHandler(rec, req)
+
+		res := rec.Result()
+		if res.StatusCode != tt.statusCode {
+			t.Errorf("expected %d; got %v", tt.statusCode, res.StatusCode)
+		}
+	}
+
 }
 
 func TestCalculate(t *testing.T) {
