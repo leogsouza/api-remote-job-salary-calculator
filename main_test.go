@@ -1,8 +1,25 @@
 package main
 
 import (
+	"net/http"
+	"net/http/httptest"
 	"testing"
 )
+
+func TestCalculateHandler(t *testing.T) {
+	req, err := http.NewRequest("GET", "localhost:8080/salary/calculator?type=daily&from=USD&to=BRL&amount=500", nil)
+	if err != nil {
+		t.Fatalf("could not created request: %v", err)
+	}
+	rec := httptest.NewRecorder()
+
+	calculateHandler(rec, req)
+
+	res := rec.Result()
+	if res.StatusCode != http.StatusOK {
+		t.Errorf("expected status OK; got %v", res.StatusCode)
+	}
+}
 
 func TestCalculate(t *testing.T) {
 	data := []struct {
