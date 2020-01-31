@@ -20,7 +20,8 @@ func TestCalculateHandler(t *testing.T) {
 		{"type=daily&to=BRL&amount=500", http.StatusBadRequest, &ErrResponse{StatusText: "Invalid request."}},
 		{"type=daily&from=USD&amount=500", http.StatusBadRequest, &ErrResponse{StatusText: "Invalid request."}},
 		{"type=daily&from=USD&to=BRL", http.StatusBadRequest, &ErrResponse{StatusText: "Invalid request."}},
-		{"type=daly&from=USD&to=BRL&amount=abcd", http.StatusBadRequest, &ErrResponse{StatusText: "Invalid request."}},
+		{"type=daily&from=USD&to=BRL&amount=abcd", http.StatusBadRequest, &ErrResponse{StatusText: "Invalid request."}},
+		{"type=daily&from=USD&to=ABCD&amount=500", http.StatusBadRequest, &ErrResponse{StatusText: "Invalid request."}},
 	}
 
 	for _, tt := range data {

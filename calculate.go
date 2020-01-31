@@ -169,6 +169,10 @@ func convertExchangeRate(from string, to string) (float64, error) {
 		return 0, err
 	}
 
+	if response.StatusCode != http.StatusOK {
+		return 0, errors.New("Could not request the rate")
+	}
+
 	responseData, err := ioutil.ReadAll(response.Body)
 	if err != nil {
 		return 0, err
