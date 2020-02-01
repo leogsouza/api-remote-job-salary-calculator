@@ -15,6 +15,10 @@ import (
 
 var limiter = NewIPRateLimiter(1, 5)
 
+func init() {
+	go limiter.CleanupVisitors()
+}
+
 func main() {
 	port := os.Getenv("PORT")
 	if port == "" {
