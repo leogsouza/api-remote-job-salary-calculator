@@ -13,6 +13,8 @@ import (
 	"github.com/leogsouza/api-remote-job-salary-calculator/logger"
 )
 
+var limiter = NewIPRateLimiter(1, 5)
+
 func main() {
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -28,6 +30,7 @@ func main() {
 	r.Use(middleware.RealIP)
 	r.Use(logger.NewStructuredLogger(logrus))
 	r.Use(middleware.Recoverer)
+	r.Use(limitMiddleware)
 	r.Use(render.SetContentType(render.ContentTypeJSON))
 	r.Use(middleware.Heartbeat("/"))
 
@@ -49,4 +52,16 @@ func main() {
 	if err := http.ListenAndServe(fmt.Sprintf(":%s", port), r); err != nil {
 		log.Fatalf("could not start server: %v\n", err)
 	}
+}
+
+func limitMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		limiter := limiter.GetLimiter(r.RemoteAddr)
+		if !limiter.Allow() {
+			http.Error(w, http.StatusText(http.StatusTooManyRequests), http.StatusTooManyRequests)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
 }
