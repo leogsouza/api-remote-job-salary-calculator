@@ -8,6 +8,7 @@ import (
 	"golang.org/x/time/rate"
 )
 
+// IPRateLimiter holds visitors' ips
 type IPRateLimiter struct {
 	ips map[string]*visitor
 	mu  *sync.RWMutex
@@ -20,6 +21,7 @@ type visitor struct {
 	lastSeen time.Time
 }
 
+// NewIPRateLimiter returns a new IPRateLImiter
 func NewIPRateLimiter(r rate.Limit, b int) *IPRateLimiter {
 	i := &IPRateLimiter{
 		ips: make(map[string]*visitor),
@@ -30,6 +32,7 @@ func NewIPRateLimiter(r rate.Limit, b int) *IPRateLimiter {
 	return i
 }
 
+// AddIP adds the visitor's ip into the IPRateLimiter ips' list
 func (i *IPRateLimiter) AddIP(ip string) *rate.Limiter {
 	i.mu.Lock()
 	defer i.mu.Unlock()
@@ -40,6 +43,7 @@ func (i *IPRateLimiter) AddIP(ip string) *rate.Limiter {
 	return limiter
 }
 
+// GetLimiter returns the Limiter based on the visitor IP
 func (i *IPRateLimiter) GetLimiter(ip string) *rate.Limiter {
 	i.mu.Lock()
 	v, exists := i.ips[ip]
@@ -52,6 +56,7 @@ func (i *IPRateLimiter) GetLimiter(ip string) *rate.Limiter {
 	return v.limiter
 }
 
+// CleanupVisitors removes the visitor from ip's list after 30 seconds
 func (i *IPRateLimiter) CleanupVisitors() {
 	for {
 		time.Sleep(time.Minute)
