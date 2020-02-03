@@ -26,6 +26,13 @@ func main() {
 		log.Printf("Defaulting to port %s", port)
 	}
 
+	log.Printf("accepting connections on port %s", port)
+	if err := http.ListenAndServe(fmt.Sprintf(":%s", port), handler()); err != nil {
+		log.Fatalf("could not start server: %v\n", err)
+	}
+}
+
+func handler() http.Handler {
 	r := chi.NewRouter()
 
 	logrus := logger.New()
@@ -52,10 +59,7 @@ func main() {
 
 	r.Get("/salary/calculator", calculateHandler)
 
-	log.Printf("accepting connections on port %s", port)
-	if err := http.ListenAndServe(fmt.Sprintf(":%s", port), r); err != nil {
-		log.Fatalf("could not start server: %v\n", err)
-	}
+	return r
 }
 
 func limitMiddleware(next http.Handler) http.Handler {
