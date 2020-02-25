@@ -3,10 +3,11 @@ package main
 import (
 	"fmt"
 	"log"
-	"net"
 	"net/http"
 	"os"
 
+	"github.com/didip/tollbooth"
+	"github.com/didip/tollbooth_chi"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/cors"
@@ -14,13 +15,8 @@ import (
 	"github.com/leogsouza/api-remote-job-salary-calculator/logger"
 )
 
-var limiter = NewIPRateLimiter(1, 3)
-
-func init() {
-	go limiter.CleanupVisitors()
-}
-
 func main() {
+
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
@@ -34,6 +30,7 @@ func main() {
 }
 
 func handler() http.Handler {
+	limiter := tollbooth.NewLimiter(1, nil)
 	r := chi.NewRouter()
 
 	logrus := logger.New()
@@ -42,7 +39,7 @@ func handler() http.Handler {
 	r.Use(middleware.RealIP)
 	r.Use(logger.NewStructuredLogger(logrus))
 	r.Use(middleware.Recoverer)
-	//r.Use(limitMiddleware)
+	r.Use(tollbooth_chi.LimitHandler(limiter))
 	r.Use(render.SetContentType(render.ContentTypeJSON))
 	r.Use(middleware.Heartbeat("/"))
 
@@ -61,23 +58,4 @@ func handler() http.Handler {
 	r.Get("/salary/calculator", calculateHandler)
 
 	return r
-}
-
-func limitMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ip, _, err := net.SplitHostPort(r.RemoteAddr)
-		if err != nil {
-			log.Println(err.Error())
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-			return
-		}
-
-		limiter := limiter.GetLimiter(ip)
-		if !limiter.Allow() {
-			http.Error(w, http.StatusText(http.StatusTooManyRequests), http.StatusTooManyRequests)
-			return
-		}
-
-		next.ServeHTTP(w, r)
-	})
 }
