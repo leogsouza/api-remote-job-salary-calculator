@@ -46,13 +46,12 @@ func (i *IPRateLimiter) AddIP(ip string) *rate.Limiter {
 // GetLimiter returns the Limiter based on the visitor IP
 func (i *IPRateLimiter) GetLimiter(ip string) *rate.Limiter {
 	i.mu.Lock()
+	defer i.mu.Unlock()
 	v, exists := i.ips[ip]
 
 	if !exists {
-		i.mu.Unlock()
 		return i.AddIP(ip)
 	}
-	i.mu.Unlock()
 	return v.limiter
 }
 
@@ -63,6 +62,7 @@ func (i *IPRateLimiter) CleanupVisitors() {
 
 		i.mu.Lock()
 		defer i.mu.Unlock()
+		log.Println("Ips:", i.ips)
 		for ip, v := range i.ips {
 			if time.Now().Sub(v.lastSeen) > 30*time.Second {
 				log.Printf("Cleaning ip %s", ip)

@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"net"
 	"net/http"
 	"os"
 
@@ -13,7 +14,7 @@ import (
 	"github.com/leogsouza/api-remote-job-salary-calculator/logger"
 )
 
-var limiter = NewIPRateLimiter(1, 5)
+var limiter = NewIPRateLimiter(1, 3)
 
 func init() {
 	go limiter.CleanupVisitors()
@@ -41,7 +42,7 @@ func handler() http.Handler {
 	r.Use(middleware.RealIP)
 	r.Use(logger.NewStructuredLogger(logrus))
 	r.Use(middleware.Recoverer)
-	r.Use(limitMiddleware)
+	//r.Use(limitMiddleware)
 	r.Use(render.SetContentType(render.ContentTypeJSON))
 	r.Use(middleware.Heartbeat("/"))
 
@@ -64,7 +65,14 @@ func handler() http.Handler {
 
 func limitMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		limiter := limiter.GetLimiter(r.RemoteAddr)
+		ip, _, err := net.SplitHostPort(r.RemoteAddr)
+		if err != nil {
+			log.Println(err.Error())
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+
+		limiter := limiter.GetLimiter(ip)
 		if !limiter.Allow() {
 			http.Error(w, http.StatusText(http.StatusTooManyRequests), http.StatusTooManyRequests)
 			return
