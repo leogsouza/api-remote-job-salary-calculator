@@ -108,16 +108,26 @@ func calculateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	hoursParam := keys.Get("hours")
+	var hoursPerDay float64 = 8
+	if hoursParam != "" {
+		hoursPerDay, err = strconv.ParseFloat(hoursParam, 64)
+		if err != nil {
+			render.Render(w, r, ErrInvalidRequest(err))
+			return
+		}
+	}
+
 	realRate, err := convertExchangeRate(fromCurrency, toCurrency)
 	if err != nil {
 		render.Render(w, r, ErrInvalidRequest(err))
 		return
 	}
-	response := calculate(typeParam, fromCurrency, toCurrency, amount, realRate)
+	response := calculate(typeParam, fromCurrency, toCurrency, amount, realRate, hoursPerDay)
 	render.JSON(w, r, response)
 }
 
-func calculate(typeParam, fromCurrency, toCurrency string, amount, realRate float64) *ResponseCalculateJSON {
+func calculate(typeParam, fromCurrency, toCurrency string, amount, realRate, hoursPerDay float64) *ResponseCalculateJSON {
 
 	switch typeParam {
 	case "annual":
@@ -127,7 +137,7 @@ func calculate(typeParam, fromCurrency, toCurrency string, amount, realRate floa
 	case "daily":
 		return calculateDaily(amount, realRate)
 	case "hourly":
-		return calculateHourly(amount, realRate)
+		return calculateHourly(amount, realRate, hoursPerDay)
 	}
 
 	return nil
@@ -150,8 +160,8 @@ func calculateDaily(amount float64, realRate float64) *ResponseCalculateJSON {
 	return calculateMonthly(amount*20, realRate)
 }
 
-func calculateHourly(amount, realRate float64) *ResponseCalculateJSON {
-	return calculateDaily(amount*8, realRate)
+func calculateHourly(amount, realRate, hoursPerDay float64) *ResponseCalculateJSON {
+	return calculateDaily(amount*hoursPerDay, realRate)
 }
 
 func calculateBrazilianSalary(amount float64) float64 {
