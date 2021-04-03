@@ -162,7 +162,7 @@ func calculateBrazilianSalary(amount float64) float64 {
 
 func convertExchangeRate(from string, to string) (float64, error) {
 
-	url := fmt.Sprintf("https://api.exchangeratesapi.io/latest?base=%s&symbols=%s", from, to)
+	url := fmt.Sprintf("https://api.ratesapi.io/latest?base=%s&symbols=%s", from, to)
 	response, err := http.Get(url)
 
 	if err != nil {
