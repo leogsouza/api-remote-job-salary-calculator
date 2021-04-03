@@ -23,13 +23,11 @@ jobs:
     
     # - name: Test
     #  run: go test -v ./...
-      
-    - name: Google App Engine (GAE) Deploy
-      # You may pin to the exact commit or the version.
-      # uses: atRobertoFlores/gae_deploy_action@b1ff9efc841e7415ba3510bf94b23c8fb46197eb
-      uses: atRobertoFlores/gae_deploy_action@1.2
+    
+    - name: Deploy an App Engine app
+      id: deploy-app
+      uses: google-github-actions/deploy-appengine@v0.1.0
       with:
-        # Service Account JSON key
-        service_account: ${{ secrets.SERVICE_ACCOUNT }}
-        # GAE project name
-        project_name: ${{ secrets.PROJECT_NAME }}
+        project: ${{ secrets.PROJECT_NAME }}
+        deliverables: ./app.yaml
+        credentials: ${{ secrets.SERVICE_ACCOUNT }}    
