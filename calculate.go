@@ -16,7 +16,7 @@ const (
 	AIRRF    = 0.275
 	VLPERDEP = 189.59
 	DIRRF    = 869.36
-	INSS     = 642.34
+	INSS     = 751.99
 )
 
 // ErrResponse renderer type for handling all sorts of errors.
