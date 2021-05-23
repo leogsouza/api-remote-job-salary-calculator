@@ -1,4 +1,4 @@
-package main
+package calculate
 
 import (
 	"encoding/json"
@@ -6,9 +6,11 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"strconv"
 
 	"github.com/go-chi/render"
+	"github.com/joho/godotenv"
 )
 
 // Brazilian taxes
@@ -31,6 +33,10 @@ type ErrResponse struct {
 	StatusText string `json:"status"`          // user-level status message
 	AppCode    int64  `json:"code,omitempty"`  // application-specific error code
 	ErrorText  string `json:"error,omitempty"` // application-level error message, for debugging
+}
+
+func init() {
+	_ = godotenv.Load()
 }
 
 // Render sets the status code to request when and error happen
@@ -60,6 +66,17 @@ type ResponseCalculateJSON struct {
 	CalculatedSalary float64 `json:"calculated_salary"`
 }
 
+type MetaResponse struct {
+	Code       int    `json:"code"`
+	Disclaimer string `json:"disclaimer"`
+}
+
+// ExchangeRateResponse represents the information coming from Exchange API
+type APIExchangeRateResponse struct {
+	Meta     MetaResponse `json:"meta"`
+	Response ExchangeRateResponse
+}
+
 // ExchangeRateResponse represents the information coming from Exchange API
 type ExchangeRateResponse struct {
 	Rates map[string]float64 `json:"rates"`
@@ -67,7 +84,7 @@ type ExchangeRateResponse struct {
 	Date  string             `json:"date"`
 }
 
-func calculateHandler(w http.ResponseWriter, r *http.Request) {
+func CalculateHandler(w http.ResponseWriter, r *http.Request) {
 	keys := r.URL.Query()
 
 	typeParam := keys.Get("type")
@@ -172,7 +189,10 @@ func calculateBrazilianSalary(amount float64) float64 {
 
 func convertExchangeRate(from string, to string) (float64, error) {
 
-	url := fmt.Sprintf("https://api.ratesapi.io/latest?base=%s&symbols=%s", from, to)
+	apiURL := os.Getenv("API_URL")
+	apiKey := os.Getenv("API_KEY")
+	url := fmt.Sprintf("%s?api_key=%s&base=%s&symbols=%s", apiURL, apiKey, from, to)
+
 	response, err := http.Get(url)
 
 	if err != nil {
@@ -188,10 +208,10 @@ func convertExchangeRate(from string, to string) (float64, error) {
 		return 0, err
 	}
 
-	var exchange ExchangeRateResponse
+	var exchange APIExchangeRateResponse
 	json.Unmarshal(responseData, &exchange)
 
-	return exchange.Rates["BRL"], nil
+	return exchange.Response.Rates[to], nil
 
 }
 

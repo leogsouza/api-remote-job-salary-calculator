@@ -12,6 +12,7 @@ import (
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/cors"
 	"github.com/go-chi/render"
+	"github.com/leogsouza/api-remote-job-salary-calculator/calculate"
 	"github.com/leogsouza/api-remote-job-salary-calculator/logger"
 )
 
@@ -55,7 +56,7 @@ func handler() http.Handler {
 	})
 	r.Use(cors.Handler)
 
-	r.Get("/salary/calculator", calculateHandler)
+	r.Get("/salary/calculator", calculate.CalculateHandler)
 
 	return r
 }
