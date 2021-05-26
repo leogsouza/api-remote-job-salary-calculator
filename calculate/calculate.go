@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"cloud.google.com/go/logging"
 	firebase "firebase.google.com/go"
 	"github.com/go-chi/render"
 )
@@ -49,28 +50,43 @@ type ErrResponse struct {
 	ErrorText  string `json:"error,omitempty"` // application-level error message, for debugging
 }
 
-func init() {
+var logger *log.Logger
 
+func init() {
 	ctx := context.Background()
+
+	// Creates a client.
+	logClient, err := logging.NewClient(ctx, projectID)
+	if err != nil {
+		log.Fatalf("Failed to create client logging: %v", err)
+	}
+	//defer logClient.Close()
+
+	logName := "my-log"
+
+	logger = logClient.Logger(logName).StandardLogger(logging.Info)
+
 	conf := &firebase.Config{ProjectID: projectID}
 	app, err := firebase.NewApp(ctx, conf)
+
+	logger.Println("Firebase connected", app)
 	if err != nil {
-		log.Fatalln(err)
+		logger.Fatalln(err)
 	}
 
 	client, err := app.Firestore(ctx)
 	if err != nil {
-		log.Fatalln(err)
+		logger.Fatalln(err)
 	}
 
 	secretsDoc, err := client.Collection("config").Doc("secrets").Get(ctx)
 	if err != nil {
-		log.Fatalln(err)
+		logger.Fatalln(err)
 	}
 
 	taxesDoc, err := client.Collection("config").Doc("taxes").Get(ctx)
 	if err != nil {
-		log.Fatalln(err)
+		logger.Fatalln(err)
 	}
 
 	taxesCfg := taxesConfig{
@@ -247,6 +263,7 @@ func convertExchangeRate(from string, to string) (float64, error) {
 
 	apiURL := cfg.secrets.ApiURL
 	apiKey := cfg.secrets.ApiKey
+	logger.Println("Config secrets", cfg.secrets)
 	url := fmt.Sprintf("%s?api_key=%s&base=%s&symbols=%s", apiURL, apiKey, from, to)
 
 	response, err := http.Get(url)
