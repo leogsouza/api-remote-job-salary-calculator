@@ -263,7 +263,7 @@ func convertExchangeRate(from string, to string) (float64, error) {
 
 	apiURL := cfg.secrets.ApiURL
 	apiKey := cfg.secrets.ApiKey
-	logger.Println("Config secrets", cfg.secrets)
+
 	url := fmt.Sprintf("%s?api_key=%s&base=%s&symbols=%s", apiURL, apiKey, from, to)
 
 	response, err := http.Get(url)
