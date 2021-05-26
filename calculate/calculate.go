@@ -1,25 +1,39 @@
 package calculate
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
-	"os"
 	"strconv"
 
+	firebase "firebase.google.com/go"
 	"github.com/go-chi/render"
-	"github.com/joho/godotenv"
 )
 
-// Brazilian taxes
-const (
-	AIRRF    = 0.275
-	VLPERDEP = 189.59
-	DIRRF    = 869.36
-	INSS     = 751.99
-)
+const projectID = "remote-job-salary-calculator"
+
+type taxesConfig struct {
+	AliqIRRF   float64 `json:"ALIQ_IRRF"`
+	DeductIRRF float64 `json:"DEDUCT_IRRF"`
+	Inss       float64 `json:"INSS"`
+	VlPerDep   float64 `json:"VL_PER_DEP"`
+}
+
+type secretsConfig struct {
+	ApiURL string `json:"API_URL"`
+	ApiKey string `json:"API_KEY"`
+}
+
+type config struct {
+	taxes   taxesConfig
+	secrets secretsConfig
+}
+
+var cfg config
 
 // ErrResponse renderer type for handling all sorts of errors.
 //
@@ -36,7 +50,48 @@ type ErrResponse struct {
 }
 
 func init() {
-	_ = godotenv.Load()
+
+	ctx := context.Background()
+	conf := &firebase.Config{ProjectID: projectID}
+	app, err := firebase.NewApp(ctx, conf)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	client, err := app.Firestore(ctx)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	secretsDoc, err := client.Collection("config").Doc("secrets").Get(ctx)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	taxesDoc, err := client.Collection("config").Doc("taxes").Get(ctx)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	taxesCfg := taxesConfig{
+		AliqIRRF:   taxesDoc.Data()["ALIQ_IRRF"].(float64),
+		DeductIRRF: taxesDoc.Data()["DEDUCT_IRRF"].(float64),
+		Inss:       taxesDoc.Data()["INSS"].(float64),
+		VlPerDep:   taxesDoc.Data()["VL_PER_DEP"].(float64),
+	}
+
+	secretsCfg := secretsConfig{
+		ApiURL: secretsDoc.Data()["API_URL"].(string),
+		ApiKey: secretsDoc.Data()["API_KEY"].(string),
+	}
+
+	cfg = config{
+		taxes:   taxesCfg,
+		secrets: secretsCfg,
+	}
+
+	defer client.Close()
+
 }
 
 // Render sets the status code to request when and error happen
@@ -182,15 +237,16 @@ func calculateHourly(amount, realRate, hoursPerDay float64) *ResponseCalculateJS
 }
 
 func calculateBrazilianSalary(amount float64) float64 {
-	irrf := (amount-VLPERDEP-INSS)*AIRRF - DIRRF
 
-	return amount - INSS - irrf
+	irrf := (amount-cfg.taxes.VlPerDep-cfg.taxes.Inss)*cfg.taxes.AliqIRRF - cfg.taxes.DeductIRRF
+
+	return amount - cfg.taxes.Inss - irrf
 }
 
 func convertExchangeRate(from string, to string) (float64, error) {
 
-	apiURL := os.Getenv("API_URL")
-	apiKey := os.Getenv("API_KEY")
+	apiURL := cfg.secrets.ApiURL
+	apiKey := cfg.secrets.ApiKey
 	url := fmt.Sprintf("%s?api_key=%s&base=%s&symbols=%s", apiURL, apiKey, from, to)
 
 	response, err := http.Get(url)
